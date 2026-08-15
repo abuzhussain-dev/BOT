@@ -1,0 +1,27 @@
+{
+  "name": "ruin-bot",
+  "version": "0.1.0",
+  "description": "AI-orchestrated Minecraft grinding bot (Java 1.21.x, Aternos, Termux)",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "mcp": "node mcp/server.js",
+    "check": "node --check"
+  },
+  "keywords": [
+    "minecraft",
+    "bot",
+    "mineflayer",
+    "ai",
+    "grinding"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "dotenv": "^16.4.5",
+    "minecraft-data": "^3.113.1",
+    "mineflayer": "^4.37.1",
+    "mineflayer-pathfinder": "^2.4.5",
+    "zod": "^3.24.2"
+  }
+}

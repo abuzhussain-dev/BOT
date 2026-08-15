@@ -1,0 +1,345 @@
+{
+  "communities": {
+    "0": [
+      "src_auth",
+      "src_auth_logger",
+      "src_auth_states",
+      "src_motion",
+      "src_motion_apply12111hitboxfix",
+      "src_motion_approachblock",
+      "src_motion_goto",
+      "src_motion_pfmodule",
+      "src_motion_rationale_38",
+      "src_motion_registry",
+      "src_motion_setupmovement",
+      "src_motion_withtimeout_sleep_logger",
+      "src_skills_foundation",
+      "src_skills_foundation_findnearestblock",
+      "src_skills_foundation_goto_approachblock_stopmoving",
+      "src_skills_foundation_mb",
+      "src_skills_foundation_skills",
+      "src_skills_foundation_withtimeout_sleep_clamp",
+      "src_skills_index",
+      "src_skills_index_describeforllm",
+      "src_skills_index_get",
+      "src_skills_index_has",
+      "src_skills_index_logger_withtimeout",
+      "src_skills_index_registry",
+      "src_skills_index_run",
+      "src_skills_index_skills_foundation",
+      "src_utils_helpers",
+      "src_utils_helpers_clamp",
+      "src_utils_helpers_logger",
+      "src_utils_helpers_sleep",
+      "src_utils_helpers_withtimeout"
+    ],
+    "1": [
+      "dotenv",
+      "minecraft_data",
+      "mineflayer",
+      "mineflayer_pathfinder",
+      "modelcontextprotocol_sdk",
+      "package",
+      "package_dependencies",
+      "package_dependencies_dotenv",
+      "package_dependencies_minecraft_data",
+      "package_dependencies_mineflayer",
+      "package_dependencies_mineflayer_pathfinder",
+      "package_dependencies_modelcontextprotocol_sdk",
+      "package_dependencies_zod",
+      "package_description",
+      "package_keywords",
+      "package_license",
+      "package_main",
+      "package_name",
+      "package_scripts",
+      "package_scripts_check",
+      "package_scripts_mcp",
+      "package_scripts_start",
+      "package_version",
+      "ref_ai",
+      "ref_bot",
+      "ref_grinding",
+      "ref_minecraft",
+      "zod"
+    ],
+    "2": [
+      "src_agents_brain_shutdown",
+      "src_bot",
+      "src_bot_authmanager",
+      "src_bot_bot",
+      "src_bot_cfg",
+      "src_bot_commandhandlers",
+      "src_bot_getbotstate",
+      "src_bot_gettypedstate",
+      "src_bot_handleingamechat",
+      "src_bot_logger",
+      "src_bot_mineflayer",
+      "src_bot_rationale_92",
+      "src_bot_schedulereconnect",
+      "src_bot_setupmovement_stopmoving",
+      "src_bot_start",
+      "src_bot_stop",
+      "src_index",
+      "src_index_brain",
+      "src_index_cfg",
+      "src_index_logger",
+      "src_index_main",
+      "src_motion_stopmoving"
+    ],
+    "3": [
+      "src_agents_brain",
+      "src_agents_brain_bot",
+      "src_agents_brain_cfg",
+      "src_agents_brain_ctxprobe",
+      "src_agents_brain_cycle",
+      "src_agents_brain_enqueue",
+      "src_agents_brain_findnearestblock",
+      "src_agents_brain_gettypedstate",
+      "src_agents_brain_lastcycle",
+      "src_agents_brain_logger_sleep",
+      "src_agents_brain_observeafteraction",
+      "src_agents_brain_plan",
+      "src_agents_brain_queue",
+      "src_agents_brain_run",
+      "src_agents_brain_skillsapi",
+      "src_agents_brain_start_stop_getbotstate_oncommand",
+      "src_agents_brain_wirechatcommands",
+      "src_bot_oncommand"
+    ],
+    "4": [
+      "src_agents_planner",
+      "src_agents_planner_cfg",
+      "src_agents_planner_complete_extractjson",
+      "src_agents_planner_hasfood",
+      "src_agents_planner_logger",
+      "src_agents_planner_plan",
+      "src_agents_planner_planheuristic",
+      "src_agents_planner_planwithllm",
+      "src_agents_planner_skillsapi",
+      "src_config",
+      "src_config_cfg",
+      "src_config_num",
+      "src_llm",
+      "src_llm_cfg",
+      "src_llm_complete",
+      "src_llm_extractjson",
+      "src_llm_withtimeout"
+    ],
+    "5": [
+      "src_perception_observe",
+      "src_perception_observe_countinventory",
+      "src_perception_observe_invsignature",
+      "src_perception_observe_makefeedback",
+      "src_perception_observe_observeafteraction",
+      "src_perception_state",
+      "src_perception_state_countinventory",
+      "src_perception_state_dim_realm",
+      "src_perception_state_dirfrom",
+      "src_perception_state_equipmentof",
+      "src_perception_state_foods",
+      "src_perception_state_gettypedstate",
+      "src_perception_state_hostile_mobs",
+      "src_perception_state_mcdata",
+      "src_perception_state_nearbyblocks",
+      "src_perception_state_nearbyentities",
+      "src_perception_state_targetblockof"
+    ],
+    "6": [
+      "mcp_server",
+      "mcp_server_fs",
+      "mcp_server_literal_pcs",
+      "mcp_server_load",
+      "mcp_server_main",
+      "mcp_server_mcdata",
+      "mcp_server_mcpserver",
+      "mcp_server_path",
+      "mcp_server_server",
+      "mcp_server_stdioservertransport",
+      "mcp_server_z"
+    ],
+    "7": [
+      "src_auth_authmanager",
+      "src_auth_authmanager_constructor",
+      "src_auth_authmanager_done",
+      "src_auth_authmanager_hook",
+      "src_auth_authmanager_login",
+      "src_auth_authmanager_say",
+      "src_auth_authmanager_waitforspawnandlogin"
+    ],
+    "8": [
+      "src_utils_logger",
+      "src_utils_logger_fs",
+      "src_utils_logger_log_dir",
+      "src_utils_logger_out",
+      "src_utils_logger_path",
+      "src_utils_logger_ts",
+      "src_utils_logger_writefile"
+    ],
+    "9": [
+      "opencode_opencode",
+      "opencode_opencode_plugin",
+      "opencode_opencode_schema",
+      "ref_opencode_plugins_graphify_js"
+    ],
+    "10": [
+      "opencode_plugins_graphify",
+      "opencode_plugins_graphify_graphifyplugin",
+      "opencode_plugins_graphify_rationale_5"
+    ]
+  },
+  "cohesion": {
+    "0": 0.11397849462365592,
+    "1": 0.07407407407407407,
+    "2": 0.12121212121212122,
+    "3": 0.1568627450980392,
+    "4": 0.17647058823529413,
+    "5": 0.20588235294117646,
+    "6": 0.2,
+    "7": 0.47619047619047616,
+    "8": 0.3333333333333333,
+    "9": 0.5,
+    "10": 0.6666666666666666
+  },
+  "gods": [
+    {
+      "id": "src_perception_state_gettypedstate",
+      "label": "getTypedState()",
+      "degree": 10
+    },
+    {
+      "id": "src_auth_authmanager",
+      "label": "AuthManager",
+      "degree": 8
+    },
+    {
+      "id": "src_utils_helpers_withtimeout",
+      "label": "withTimeout()",
+      "degree": 8
+    },
+    {
+      "id": "src_utils_helpers_logger",
+      "label": "logger",
+      "degree": 8
+    },
+    {
+      "id": "src_motion_setupmovement",
+      "label": "setupMovement()",
+      "degree": 7
+    },
+    {
+      "id": "src_utils_helpers_sleep",
+      "label": "sleep()",
+      "degree": 7
+    },
+    {
+      "id": "src_bot_start",
+      "label": "start()",
+      "degree": 7
+    },
+    {
+      "id": "src_agents_brain_cycle",
+      "label": "cycle()",
+      "degree": 7
+    },
+    {
+      "id": "src_motion_goto",
+      "label": "goto()",
+      "degree": 6
+    },
+    {
+      "id": "src_bot_stop",
+      "label": "stop()",
+      "degree": 6
+    }
+  ],
+  "surprises": [
+    {
+      "source": "cycle()",
+      "target": "getTypedState()",
+      "source_files": [
+        "src/agents/brain.js",
+        "src/perception/state.js"
+      ],
+      "confidence": "INFERRED",
+      "relation": "indirect_call",
+      "why": "inferred connection - not explicitly stated in source; bridges separate communities"
+    },
+    {
+      "source": "start()",
+      "target": "setupMovement()",
+      "source_files": [
+        "src/bot.js",
+        "src/motion.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities"
+    },
+    {
+      "source": "run()",
+      "target": "sleep()",
+      "source_files": [
+        "src/agents/brain.js",
+        "src/utils/helpers.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities"
+    },
+    {
+      "source": "complete()",
+      "target": "withTimeout()",
+      "source_files": [
+        "src/llm.js",
+        "src/utils/helpers.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities"
+    },
+    {
+      "source": "shutdown()",
+      "target": "stop()",
+      "source_files": [
+        "src/agents/brain.js",
+        "src/bot.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "peripheral node `shutdown()` unexpectedly reaches hub `stop()`"
+    }
+  ],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `mineflayer` connect `Community 1` to `Community 2`?",
+      "why": "High betweenness centrality (0.241) - this node is a cross-community bridge."
+    },
+    {
+      "type": "verify_inferred",
+      "question": "Are the 2 inferred relationships involving `getTypedState()` (e.g. with `cycle()` and `state.js`) actually correct?",
+      "why": "`getTypedState()` has 2 INFERRED edges - model-reasoned connections that need verification."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `queue`, `{ logger }`, `STATES` to the rest of the system?",
+      "why": "71 weakly-connected nodes found - possible documentation gaps or missing edges."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 0` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.11397849462365592 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 1` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.07407407407407407 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 2` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.12121212121212122 - nodes in this community are weakly interconnected."
+    }
+  ]
+}
