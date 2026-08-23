@@ -64,12 +64,20 @@ async function cycle() {
     const state = getBotState()
     if (!state) return
 
-    const task = queue.length ? queue.shift() : await plan(state, { bot: bot(), ...ctxProbe })
+    // Phase C: planner gets lastFeedback (typed row from last cycle) as ground
+    // truth for the previous action's result; getTypedState has no lastResult.
+    const task = queue.length ? queue.shift() : await plan(state, {
+      bot: bot(),
+      logger,
+      state,
+      ...ctxProbe,
+      lastFeedback: lastCycle?.feedback || null,
+    })
     if (!task) {
       lastResult = '(idle)'
       return
     }
-    const ctx = { bot: bot(), logger, state }
+    const ctx = { bot: bot(), logger, state, lastFeedback: lastCycle?.feedback || null }
     // Phase A: auto-observe-after-action — run the skill, then capture the
     // typed feedback row + re-derived state in one shot.
     const { feedback, state: afterState } = await observeAfterAction(bot(), getTypedState, {
