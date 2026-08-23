@@ -1,6 +1,6 @@
 node_modules/
 .env
 logs/
-memory/
+/memory/
 *.log
 .DS_Store
