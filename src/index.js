@@ -1,6 +1,7 @@
 const cfg = require('./config')
 const { logger } = require('./utils/helpers')
 const brain = require('./agents/brain')
+const controller = require('./controller')
 
 process.on('SIGINT', () => { logger.info('SIGINT received'); brain.quit?.() ?? process.exit(0) })
 process.on('SIGTERM', () => { logger.info('SIGTERM received'); brain.quit?.() ?? process.exit(0) })
@@ -10,6 +11,7 @@ async function main() {
   logger.info(`== RUIN BOT starting ==`)
   logger.info(`server: ${cfg.serverHost}:${cfg.serverPort}  version: ${cfg.version}  bot: ${cfg.botUsername}`)
   logger.info(`LLM planner: ${cfg.llm.enabled ? `${cfg.llm.model} @ ${cfg.llm.baseURL}` : 'disabled (heuristic fallback active)'}`)
+  controller.start()
   await brain.run()
 }
 
