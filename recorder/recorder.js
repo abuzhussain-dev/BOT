@@ -169,15 +169,44 @@ function recoverOrphans(dir) {
   return recovered
 }
 
+// Drop old .mcpr files so a 24/7 hosted box can't fill its disk. Only final
+// .mcpr files are touched (the live .recording.tmcpr chunk is never pruned).
+// Deletes oldest-first: anything older than maxAgeDays, or until disk usage
+// drops below diskCapPct. Always keeps at least keepLatest most-recent files.
+function pruneRecordings(dir, opts = {}) {
+  const diskCapPct = opts.diskCapPct ?? 80
+  const maxAgeDays = opts.maxAgeDays ?? 7
+  const keepLatest = opts.keepLatest ?? 3
+  if (!fs.existsSync(dir)) return
+  let files = fs.readdirSync(dir).filter((f) => f.endsWith('.mcpr'))
+    .map((f) => { const p = path.join(dir, f); let st; try { st = fs.statSync(p) } catch { return null }; return { p, mtime: st.mtimeMs } })
+    .filter(Boolean).sort((a, b) => a.mtime - b.mtime)
+  const toDelete = new Set()
+  const now = Date.now(), ageMs = maxAgeDays * 86400000
+  files.forEach((f, i) => { if (i < files.length - keepLatest && now - f.mtime > ageMs) toDelete.add(f.p) })
+  if (typeof fs.statfsSync === 'function') {
+    let remaining = files.filter((f) => !toDelete.has(f.p))
+    const usedPct = () => { const s = fs.statfsSync(dir); return 100 * (1 - s.bavail / s.blocks) }
+    let guard = 0
+    while (usedPct() > diskCapPct && remaining.length > keepLatest && guard++ < 1000) {
+      toDelete.add(remaining.shift().p)
+    }
+  }
+  for (const p of toDelete) { try { fs.unlinkSync(p) } catch { /* ignore */ } }
+  if (toDelete.size) console.log(`[recorder] pruned ${toDelete.size} old replay(s)`)
+}
+
 function attachRecorder(bot, opts = {}) {
   const dir = opts.dir || path.join(__dirname, 'recordings')
   fs.mkdirSync(dir, { recursive: true })
   const base = opts.base || `rec_${Date.now()}`
   const autoSaveMs = opts.autoSaveMs || 0 // 0 = only on stop (single file)
+  const pruneOpts = opts.prune || { diskCapPct: 80, maxAgeDays: 7, keepLatest: 3 }
 
-  // Recover anything a previous (crashed) run left behind.
+  // Recover anything a previous (crashed) run left behind, then prune stale.
   const rec = recoverOrphans(dir)
   if (rec.length) console.log(`[recorder] recovered ${rec.length} orphaned chunk(s):`, rec.map((p) => path.basename(p)))
+  pruneRecordings(dir, pruneOpts)
 
   let fd = null
   let tmcprPath = null
@@ -271,6 +300,7 @@ function attachRecorder(bot, opts = {}) {
   if (autoSaveMs > 0) timer = setInterval(() => {
     const m = flush()
     if (m) console.log(`[recorder] auto-saved chunk ${path.basename(m.outPath)} (${m.packets} packets, ${m.durationMs}ms)`)
+    pruneRecordings(dir, pruneOpts)
   }, autoSaveMs)
 
   function stop() {
