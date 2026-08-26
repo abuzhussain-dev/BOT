@@ -4,3 +4,5 @@ logs/
 /memory/
 *.log
 .DS_Store
+# Replay recordings (generated .mcpr files, not source)
+recorder/recordings/
