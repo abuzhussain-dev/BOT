@@ -76,7 +76,7 @@ function start() {
     // from a base/mine elsewhere. Check after a short delay so position
     // and spawnPoint are settled.
     setTimeout(() => {
-      if (bot._client === null || bot.entity == null) return // disconnected mid-timer
+      if (!bot || bot._client === null || bot.entity == null) return // torn down mid-timer
       const me = bot.entity?.position
       const spawn = bot.spawnPoint
       if (!me || !spawn) return
