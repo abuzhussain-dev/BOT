@@ -14,6 +14,9 @@ async function complete(messages, opts = {}) {
     messages,
     temperature: opts.temperature ?? cfg.llm.temperature,
     stream: false,
+    // Nemotron free routes default to extended thinking (60s+ stalls).
+    // 'none' returns the final answer directly (~2s measured).
+    reasoning_effort: opts.reasoningEffort ?? (process.env.LLM_REASONING_EFFORT || 'none'),
   }
   if (opts.json) {
     // Some providers (Ollama) reject response_format, so we only add it
