@@ -46,8 +46,8 @@ function bot() {
 
 function enqueue(task) {
   queue.push(task)
-  logger.info(`[brain] queued manual task: ${task.task}`)
-  episodic.record({ type: 'chat', action: task.task, result: 'manual queue', detail: task.reason })
+  logger.info(`[brain] queued task: ${task.task}${task.reason ? ` (${task.reason})` : ''}`)
+  episodic.record({ type: 'chat', action: task.task, result: 'queued', detail: task.reason })
 }
 
 /** Dynamic skill-vision: did blocks of type `name` exist nearby? */
@@ -71,6 +71,7 @@ async function cycle() {
       logger,
       state,
       ...ctxProbe,
+      ctxEnqueue: enqueue, // planner may enqueue tool-bootstrap chains
       lastFeedback: lastCycle?.feedback || null,
     })
     if (!task) {

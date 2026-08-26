@@ -1,8 +1,20 @@
 const cfg = require('../config')
+const mcData = require('minecraft-data')
 const skillsApi = require('../skills')
 const { complete, extractJson } = require('../llm')
 const { logger } = require('../utils/helpers')
 const context = require('../context/builder')
+
+// Auto-eat at this food level even when not yet critical (cfg.foodThreshold
+// is 12; 14 gives a safe margin so hunger never stalls health regen).
+const AUTO_EAT_FOOD = 14
+
+// Ore blocks whose drops require a pickaxe tier above wooden (mcData
+// harvestTools ground truth; stone-tier or better for iron/gold/diamond).
+const GATED_ORES = new Set([
+  'iron_ore', 'gold_ore', 'diamond_ore', 'redstone_ore', 'emerald_ore',
+  'lapis_ore', 'copper_ore', 'deepslate_diamond_ore', 'coal_ore',
+])
 
 /**
  * The planner decides the next single task. Two modes:
@@ -15,6 +27,16 @@ async function plan(state, ctx) {
   if (cfg.llm.enabled) {
     try {
       const task = await planWithLLM(state, ctx)
+      // Same tool-tier guard as the heuristic path: an LLM (or a stale
+      // habit) picking ore mining bare-handed just grinds air for no drops.
+      if (task
+        && task.task === 'mineType'
+        && GATED_ORES.has(String(task.args?.type || '').toLowerCase())
+        && ctx.bot
+        && !hasAdequatePickaxe(ctx.bot, String(task.args.type).toLowerCase())) {
+        logger.warn('LLM chose ore mining without an adequate pickaxe; diverting to tool bootstrap')
+        return nextBootstrapStep(ctx)
+      }
       return task
     } catch (e) {
       logger.warn(`LLM planning failed (${e.message}); falling back to heuristics`)
@@ -80,7 +102,8 @@ Rules:
  * Order of priority:
  *   1. low health -> eat / wait
  *   2. drops nearby -> collect
- *   3. ores -> mine
+ *   3. ores -> mine (but only with an adequate pickaxe tier; otherwise
+ *      enqueue the wood -> table -> wooden_pickaxe -> stone_pickaxe chain)
  *   4. flowers/crops -> chop or mine stone as filler
  */
 function planHeuristic(state, ctx = {}) {
@@ -107,8 +130,21 @@ function planHeuristic(state, ctx = {}) {
     if (hasFood(ctx)) return { task: 'eat', args: {}, reason: 'hungry' }
   }
 
+  // Pre-food auto-eat at a softer threshold so hunger never gets critical.
+  if (food < AUTO_EAT_FOOD && hasFood(ctx)) {
+    return { task: 'eat', args: {}, reason: `food ${food} below auto-eat ${AUTO_EAT_FOOD}` }
+  }
+
   const dropNames = ['diamond_ore', 'deepslate_diamond_ore', 'iron_ore', 'copper_ore',
     'coal_ore', 'gold_ore', 'redstone_ore', 'lapis_ore', 'emerald_ore', 'iron_ore']
+
+  // Tool-tier gate: mining ore bare-handed or with too-low a tier yields no
+  // drops, so bootstrap tools first instead of grinding air.
+  const oreTarget = probe ? dropNames.find((ore) => probe(ore)) : null
+  if (oreTarget && !hasAdequatePickaxe(ctx.bot, oreTarget)) {
+    return nextBootstrapStep(ctx)
+  }
+
   if (probe) {
     for (const ore of dropNames) {
       if (probe(ore)) return { task: 'mineType', args: { type: ore }, reason: `grind ${ore}` }
@@ -126,6 +162,149 @@ function planHeuristic(state, ctx = {}) {
   return { task: 'collectNearby', args: {}, reason: 'no world vision; collecting nearby drops' }
 }
 
+/** mcData handle matching the bot's server version (safe fallback). */
+function botMcData(bot) {
+  try {
+    return mcData(bot?.version || '1.20.4')
+  } catch {
+    return mcData('1.20.4')
+  }
+}
+
+const PICKAXE_TIERS = {
+  wooden_pickaxe: 1,
+  golden_pickaxe: 1,
+  stone_pickaxe: 2,
+  iron_pickaxe: 3,
+  diamond_pickaxe: 4,
+  netherite_pickaxe: 5,
+}
+
+/**
+ * Does the inventory hold a pickaxe of the minimum tier required to actually
+ * harvest `blockName`? Uses mcData harvestTools as ground truth; blocks with
+ * no entry are hand-harvestable.
+ */
+function hasAdequatePickaxe(bot, blockName) {
+  try {
+    const block = botMcData(bot).blocksByName[blockName]
+    if (!block || !block.harvestTools) return true // hand-harvestable or unknown
+    const needIds = Object.keys(block.harvestTools).map(Number)
+    const items = bot.inventory?.items() || []
+    for (const item of items) {
+      const tier = PICKAXE_TIERS[item.name]
+      if (tier && needIds.includes(item.type)) return true
+    }
+    return false
+  } catch {
+    return true // never let the gate wedge the whole planner
+  }
+}
+
+/**
+ * Next step of the tool-bootstrap chain. The planner returns ONE step per
+ * cycle and enqueues the rest via ctx.ctxEnqueue, mirroring brain's manual
+ * queue contract ({task, args, reason}). Without an enqueuer (tests, degraded
+ * ctx) only the current step is returned, which still makes forward progress.
+ */
+function nextBootstrapStep(ctx) {
+  const bot = ctx.bot
+  const inv = () => {
+    try { return bot.inventory.items() } catch { return [] }
+  }
+  const count = (pred) => inv().filter(pred).reduce((n, i) => n + i.count, 0)
+
+  // Any log variant counts toward the 3-log goal (oak_log etc).
+  const logs = count((i) => /_log$/.test(i.name))
+  const planks = count((i) => /_planks$/.test(i.name))
+  const sticks = count((i) => /^stick$/.test(i.name))
+  // A table either in inventory or already placed nearby unblocks 3x3 recipes.
+  const tables = count((i) => /^crafting_table$/.test(i.name))
+    + (probeNearby(ctx, 'crafting_table') ? 1 : 0)
+  const hasWoodenPick = count((i) => /(wooden|golden)_pickaxe/.test(i.name)) > 0
+  const hasStonePick = count((i) => /_stone_pickaxe$/.test(i.name)) > 0
+  const cobble = count((i) => /(^cobblestone$)|(_cobblestone$)/.test(i.name))
+  const stone = count((i) => /^stone$/.test(i.name))
+
+  const enqueue = typeof ctx.ctxEnqueue === 'function'
+    ? (task, args = {}, reason = '') => {
+        try { ctx.ctxEnqueue({ task, args, reason }) } catch { /* best effort */ }
+      }
+    : null
+  const chain = []
+  function planStep(task, args, reason, followUps) {
+    const rest = Array.isArray(followUps) && followUps.length ? followUps : chain
+    if (enqueue && rest.length) {
+      for (const t of rest) enqueue(t.task, t.args, t.reason)
+    }
+    chain.length = 0
+    return { task, args, reason }
+  }
+
+  if (!hasStonePick) {
+    if (!hasWoodenPick && planks === 0 && logs < 3) {
+      // Fresh spawn (empty or nearly empty inventory): enqueue the full
+      // chain so the queue keeps the bot moving without re-planning.
+      const fullChain = [
+        { task: 'chopTree', args: {}, reason: 'bootstrap: gather logs' },
+        { task: 'collectNearby', args: {}, reason: 'bootstrap: pick up drops' },
+        { task: 'craftItem', args: { name: 'oak_planks' }, reason: 'bootstrap: planks' },
+        { task: 'craftTable', args: {}, reason: 'bootstrap: table' },
+        { task: 'craftItem', args: { name: 'stick' }, reason: 'bootstrap: sticks' },
+        { task: 'craftItem', args: { name: 'wooden_pickaxe' }, reason: 'bootstrap: wooden pickaxe' },
+        { task: 'mineType', args: { type: 'stone' }, reason: 'bootstrap: cobblestone x3' },
+        { task: 'mineType', args: { type: 'stone' }, reason: 'bootstrap: cobblestone x3' },
+        { task: 'mineType', args: { type: 'stone' }, reason: 'bootstrap: cobblestone x3' },
+        { task: 'collectNearby', args: {}, reason: 'bootstrap: pick up stone' },
+        { task: 'craftItem', args: { name: 'stick' }, reason: 'bootstrap: stick for stone pickaxe' },
+        { task: 'craftItem', args: { name: 'stone_pickaxe' }, reason: 'bootstrap: stone pickaxe' },
+      ]
+      const [first, ...rest] = fullChain
+      return planStep(first.task, first.args, first.reason, rest)
+    }
+    if (!hasWoodenPick) {
+      // Wood budget in plank terms: pick(3) + table(4 if still needed)
+      // + sticks(one craft: 2 planks -> 4 sticks). Top up before spending
+      // so no craft step can fail on missing ingredients (livelock guard).
+      const needPlanks = 3 + (tables === 0 ? 4 : 0) + (sticks === 0 ? 2 : 0)
+      const woodBudget = planks + logs * 4
+      if (woodBudget < needPlanks) {
+        if (logs > 0) return planStep('craftItem', { name: 'oak_planks' }, 'bootstrap: convert logs to planks')
+        return planStep('chopTree', {}, 'bootstrap: need more wood')
+      }
+      if (planks === 0) return planStep('craftItem', { name: 'oak_planks' }, 'bootstrap: planks from logs')
+      if (sticks === 0) return planStep('craftItem', { name: 'stick' }, 'bootstrap: sticks')
+      if (tables === 0) {
+        return planks >= 4
+          ? planStep('craftTable', {}, 'bootstrap: crafting table')
+          : planStep('craftItem', { name: 'oak_planks' }, 'bootstrap: planks for table')
+      }
+      return planStep('craftItem', { name: 'wooden_pickaxe' }, 'bootstrap: wooden pickaxe')
+    }
+    if (cobble + stone >= 3) {
+      if (sticks === 0) {
+        if (planks >= 2) return planStep('craftItem', { name: 'stick' }, 'bootstrap: sticks')
+        if (logs > 0 || planks > 0) return planStep('craftItem', { name: 'oak_planks' }, 'bootstrap: planks for sticks')
+        return planStep('chopTree', {}, 'bootstrap: need wood for sticks')
+      }
+      return planStep('craftItem', { name: 'stone_pickaxe' }, 'bootstrap: stone pickaxe')
+    }
+    if (probeNearby(ctx, 'stone')) {
+      return planStep('mineType', { type: 'stone' }, 'bootstrap: mine stone')
+    }
+    return planStep('mineType', { type: 'stone' }, 'bootstrap: seek stone')
+  }
+
+  // Stone pickaxe secured; ores are now worth mining.
+  return { task: 'mineType', args: { type: 'iron_ore' }, reason: 'tooling complete; grind iron_ore' }
+}
+
+/** Local probe helper that tolerates missing vision (mirrors planHeuristic). */
+function probeNearby(ctx, name) {
+  if (typeof ctx.skillGot !== 'function') return false
+  try { return !!ctx.skillGot(name) } catch { return false }
+}
+
 function hasFood(ctx) {
   try {
     return !!ctx.bot?.inventory?.items()?.some((i) => i.foodPoints)
@@ -134,4 +313,4 @@ function hasFood(ctx) {
   }
 }
 
-module.exports = { plan }
+module.exports = { plan, hasAdequatePickaxe, nextBootstrapStep, AUTO_EAT_FOOD }
