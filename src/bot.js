@@ -40,21 +40,6 @@ function start() {
     checkTimeoutInterval: 600000, // 10min — Aternos can take 90-120s+ to boot the world mid-join
   })
 
-  // Opt-in ReplayMod recording: set RECORD_REPLAY=1 to capture the session to
-  // recorder/recordings/*.mcpr (off by default). Auto-saves a new file every
-  // 5 minutes (override with RECORD_SPLIT_MS). Zero impact unless enabled.
-  let replayRec
-  if (process.env.RECORD_REPLAY) {
-    try {
-      const splitMs = Number(process.env.RECORD_SPLIT_MS) || 5 * 60 * 1000
-      replayRec = require('../recorder/recorder').attachRecorder(bot, { base: `ruin_${Date.now()}`, autoSaveMs: splitMs })
-      logger.info(`[recorder] recording -> ${replayRec.getOutPath()}`)
-    } catch (e) { logger.warn('[recorder] failed to start:', e.message) }
-  }
-  bot.once('end', () => {
-    if (replayRec) { try { const m = replayRec.stop(); logger.info('[recorder] saved', m.outPath) } catch (e) { logger.warn('[recorder] save failed:', e.message) } }
-  })
-
   let spawnHandled = false
 
   // Spawn timeout: make sure we reconnect if the server never spawns us

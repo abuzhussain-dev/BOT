@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "mcp": "node mcp/server.js",
+    "record": "node recorder/record-standalone.js",
     "check": "node --check"
   },
   "keywords": [

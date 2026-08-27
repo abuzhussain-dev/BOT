@@ -322,19 +322,23 @@ function attachRecorder(bot, opts = {}) {
 }
 
 // Independent recording bot from the same .env (no edits to your main bot).
+// Runs as its OWN process/bot, completely separate from BOT. To avoid clashing
+// with the main bot on the same account, set RECORDER_USERNAME (e.g. the same
+// name + "_rec") so the recording bot connects as a distinct player.
 function recordStandalone(opts = {}) {
   const cfg = require(path.join(__dirname, '..', 'src', 'config'))
   const mineflayer = require('mineflayer')
   const BOT_VERSION = cfg.version || '1.21.11'
+  const username = process.env.RECORDER_USERNAME || cfg.botUsername
   const bot = mineflayer.createBot({
     host: cfg.serverHost, port: cfg.serverPort,
-    username: cfg.botUsername, auth: cfg.authMode,
+    username, auth: cfg.authMode,
     version: BOT_VERSION, hideErrors: false,
   })
   // Default: auto-save a new .mcpr every 5 minutes (override via RECORD_SPLIT_MS).
   const autoSaveMs = Number(process.env.RECORD_SPLIT_MS) || opts.autoSaveMs || 5 * 60 * 1000
   const rec = attachRecorder(bot, { ...opts, autoSaveMs })
-  bot.once('spawn', () => console.log('[recorder] spawned, recording ->', rec.getOutPath()))
+  bot.once('spawn', () => console.log('[recorder] spawned as', username, '-> recording', rec.getOutPath()))
   bot.on('end', () => { const m = rec.stop(); console.log('[recorder] stopped', m) })
   return { bot, rec }
 }
