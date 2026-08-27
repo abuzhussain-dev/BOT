@@ -107,17 +107,21 @@ function unzipStore(buf) {
 
 function buildMetadata(startTime, lastTs, info, bot) {
   const mcversion = String(bot.version || bot._client?.version || 'unknown')
-  const protocol = bot._client?.protocolVersion || 0
+  // protocol number: derive from minecraft-data (client has no protocolVersion
+  // field); fall back to server-side value if present.
+  let protocol = 0
+  try { const md = require('minecraft-data')(mcversion); if (md?.version?.version) protocol = md.version.version } catch { /* ignore */ }
+  if (!protocol) protocol = bot._client?.protocolVersion || 0
   return {
     singleplayer: false,
-    serverName: 'ruin-bot',
+    serverName: 'rcbot',
     duration: lastTs,
     date: startTime,
     mcversion,
     fileFormat: 'MCPR',
     fileFormatVersion: 14,
     protocol,
-    generator: 'mineflayer-recorder (ruin-bot)',
+    generator: 'mineflayer-recorder (rcbot)',
     selfId: info.selfId ?? -1,
     players: info.players,
   }
@@ -251,6 +255,24 @@ function attachRecorder(bot, opts = {}) {
   }
   bot._client.on('packet', onPacket)
 
+  // 1.20.3+: servers push a resource pack during the CONFIGURATION phase and
+  // hold finish_configuration (no spawn) until the client replies. If we don't
+  // decline it, the recorder stalls forever in configuration. mineflayer's
+  // built-in handler can mis-serialize the uuid, so decline raw here.
+  const declineRP = (data) => {
+    try {
+      if (bot.supportFeature?.('resourcePackUsesUUID')) {
+        const uuid = data.uuid
+        console.log(`[recorder] declining resource pack (uuid ${uuid})`)
+        bot._client.write('resource_pack_receive', { uuid, result: 1 }) // DECLINED
+      } else {
+        bot._client.write('resource_pack_receive', { hash: data.hash, result: 1 })
+      }
+    } catch (e) { /* ignore */ }
+  }
+  bot._client.on('add_resource_pack', declineRP)
+  bot._client.on('resource_pack_send', declineRP)
+
   const onSpawn = () => {
     info.selfId = bot.entity?.id ?? info.selfId
     if (bot.entity?.uuid) info.players[bot.entity.uuid] = { name: bot.username, uuid: bot.entity.uuid }
@@ -326,7 +348,7 @@ function attachRecorder(bot, opts = {}) {
 // with the main bot on the same account, set RECORDER_USERNAME (e.g. the same
 // name + "_rec") so the recording bot connects as a distinct player.
 function recordStandalone(opts = {}) {
-  const cfg = require(path.join(__dirname, '..', 'src', 'config'))
+  const cfg = require('./config')
   const mineflayer = require('mineflayer')
   const BOT_VERSION = cfg.version || '1.21.11'
   const username = process.env.RECORDER_USERNAME || cfg.botUsername
@@ -351,9 +373,9 @@ function selfTest() {
   bot.username = 'selftest'
   bot.version = '1.21.11'
   bot._client = new EventEmitter()
-  bot._client.protocolVersion = 767
   bot._client.version = '1.21.11'
   bot.entity = { id: 42, uuid: '11111111-1111-1111-1111-111111111111' }
+  const expectedProtocol = (() => { try { return require('minecraft-data')('1.21.11').version.version } catch { return 767 } })()
 
   const rec = attachRecorder(bot, { base: `_selftest_${Date.now()}`, dir: '/tmp', autoSaveMs: 0 })
   const fb = (id, ...body) => Buffer.from([id, ...body])
@@ -375,7 +397,7 @@ function selfTest() {
       prev = ts; p += len; entries++
     }
     const meta = JSON.parse(zip['metaData.json'].data.toString())
-    return zip['metaData.json'] && zip['mods.json'] && mono && entries === expectEntries && meta.selfId === 42 && meta.protocol === 767
+    return zip['metaData.json'] && zip['mods.json'] && mono && entries === expectEntries && meta.selfId === 42 && meta.protocol === expectedProtocol
   }
   const pass = verify(chunk1.outPath, 2) && verify(m.outPath, 1)
   console.log(`[selfTest] ${pass ? 'PASS' : 'FAIL'} -> chunk1=${chunk1.outPath} final=${m.outPath}`)
